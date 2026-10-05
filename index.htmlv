@@ -1,29 +1,6 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Piket Kelas</title>
-<style>
-:root{--bg:#f4f6fb;--card:#fff;--ink:#161f33;--mute:#667085;--line:#e5e8ef;--navy:#161f33;--red:#c93335;--redbg:#fde3e3;--grn:#157347;--grnbg:#dcf5e5;--gry:#475467;--grybg:#eceff4}
-@media(prefers-color-scheme:dark){:root{--bg:#0d121f;--card:#171e2f;--ink:#eef1f7;--mute:#98a2b8;--line:#2a3347;--navy:#0a0f1a;--redbg:#4a1f22;--grnbg:#173a2a;--grybg:#262f44;--gry:#c3cadb;--red:#ff8a8c;--grn:#6fd9a0}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px}
-main{max-width:640px;margin:0 auto}
-header{background:var(--navy);color:#fff;border-radius:24px;padding:24px;margin-bottom:16px}
-header small{display:block;color:#b6bfd1;letter-spacing:.02em}
-header h1{margin:2px 0 8px;font-size:34px}
-header p{margin:0;color:#b6bfd1}
-.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px;margin-bottom:16px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
-h2{margin:0;font-size:20px}
-.day{padding:14px 0;border-bottom:1px solid var(--line)}
-.day:last-child{border:0;padding-bottom:0}
-.day b{font-size:19px;display:block}
-.day span.d{color:var(--mute);font-size:15px}
-.names{display:flex;flex-direction:column;gap:6px;align-items:flex-end;text-align:right}
-.person{display:flex;gap:8px;align-items:center}
-.badge{border-radius:99px;padding:6px 14px;font-size:15px}
+
+
+:6px 14px;font-size:15px}
 .piket{background:var(--grnbg);color:var(--grn)}
 .tidak{background:var(--grybg);color:var(--gry)}
 .kabur{background:var(--redbg);color:var(--red)}
