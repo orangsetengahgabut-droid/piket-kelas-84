@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piket Kelas</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#161f33;--mute:#667085;--line:#e5e8ef;--navy:#161f33;--red:#c93335;--redbg:#fde3e3;--grn:#157347;--grnbg:#dcf5e5;--gry:#475467;--grybg:#eceff4}
+@media(prefers-color-scheme:dark){:root{--bg:#0d121f;--card:#171e2f;--ink:#eef1f7;--mute:#98a2b8;--line:#2a3347;--navy:#0a0f1a;--redbg:#4a1f22;--grnbg:#173a2a;--grybg:#262f44;--gry:#c3cadb;--red:#ff8a8c;--grn:#6fd9a0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px}
+main{max-width:640px;margin:0 auto}
+header{background:var(--navy);color:#fff;border-radius:24px;padding:24px;margin-bottom:16px}
+header small{display:block;color:#b6bfd1;letter-spacing:.02em}
+header h1{margin:2px 0 8px;font-size:34px}
+header p{margin:0;color:#b6bfd1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px;margin-bottom:16px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h2{margin:0;font-size:20px}
+.day{padding:14px 0;border-bottom:1px solid var(--line)}
+.day:last-child{border:0;padding-bottom:0}
+.day b{font-size:19px;display:block}
+.day span.d{color:var(--mute);font-size:15px}
+.names{display:flex;flex-direction:column;gap:6px;align-items:flex-end;text-align:right}
+.person{display:flex;gap:8px;align-items:center}
+.badge{border-radius:99px;padding:6px 14px;font-size:15px}
+.piket{background:var(--grnbg);color:var(--grn)}
+.tidak{background:var(--grybg);color:var(--gry)}
+.kabur{background:var(--redbg);color:var(--red)}
+button,select,input{font:inherit;color:var(--ink)}
+button{border:0;border-radius:14px;padding:12px 18px;background:var(--grybg);cursor:pointer}
+button.dark{background:var(--navy);color:#fff}
+button.danger{background:var(--red);color:#fff}
+@media(prefers-color-scheme:dark){button.dark{background:#2b3a5e}button.danger{background:#b02a2c}}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #6b8cff;outline-offset:2px}
+select,input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card);margin-top:10px}
+.edit{display:grid;grid-template-columns:1fr 130px 44px;gap:8px;align-items:center}
+.edit select,.edit button{margin:0}
+.edit button{padding:12px 0}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.mute{color:var(--mute);font-size:15px}
+.nav{display:flex;gap:8px}
+.nav button{padding:8px 14px}
+button:disabled{opacity:.4;cursor:default}
+dialog{border:0;border-radius:24px;padding:24px;width:min(92vw,380px);background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(10,15,26,.55)}
+.err{color:var(--red);min-height:1.3em;margin:8px 0 0;font-size:15px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:99px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+ul.stu{list-style:none;margin:12px 0 0;padding:0}
+ul.stu li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+ul.stu button{padding:6px 12px}
+</style>
+</head>
+<body>
+<main>
+  <header><small>Website kelas</small><h1>Piket Kelas</h1><p id="today"></p></header>
+  <div id="app"></div>
+</main>
+
+<dialog id="login">
+  <form method="dialog" id="loginForm">
+    <h2>Masuk admin</h2>
+    <input id="pw" type="password" placeholder="Password admin" autocomplete="current-password" aria-label="Password admin">
+    <p class="err" id="loginErr"></p>
+    <div class="actions"><button class="dark" type="submit">Masuk</button><button type="button" id="loginCancel">Batal</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ====== ISI DUA BARIS INI (Supabase > Project Settings > API) ======
+const SUPABASE_URL = "";   // contoh: https://abcdxyz.supabase.co
+const SUPABASE_KEY = "";   // anon / publishable key
+// ===================================================================
+const START = "2026-10-05", END = "2026-10-31";
+const DAYS = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const LABEL = {piket:"Piket", tidak:"Tidak piket", kabur:"Kabur"};
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,"0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const fmt = s => { const d = parse(s); return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
+const esc = t => String(t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clamp = s => s < START ? START : s > END ? END : s;
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return iso(d); };
+const mondayOf = s => { const d = parse(s); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return iso(d); };
+
+let students = [], duties = [], admin = false, pw = "";
+const todayIso = iso(new Date());
+let weekStart = mondayOf(clamp(todayIso));
+let editDate = clamp(todayIso), items = [];
+
+$("#today").textContent = "Hari ini: " + fmt(todayIso);
+
+function headers(){
+  const h = {apikey: SUPABASE_KEY, "Content-Type": "application/json"};
+  if (SUPABASE_KEY.startsWith("eyJ")) h.Authorization = "Bearer " + SUPABASE_KEY;
+  return h;
+}
+async function get(path){
+  const r = await fetch(SUPABASE_URL + "/rest/v1/" + path, {headers: headers()});
+  if (!r.ok) throw new Error("Gagal memuat data");
+  return r.json();
+}
+async function rpc(name, body){
+  const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + name, {method:"POST", headers: headers(), body: JSON.stringify(body)});
+  const t = await r.text();
+  if (!r.ok) { let m = "Gagal menyimpan"; try { m = JSON.parse(t).message || m; } catch(e){} throw new Error(m); }
+  return t ? JSON.parse(t) : null;
+}
+function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2200); }
+
+async function load(){
+  [students, duties] = await Promise.all([
+    get("students?select=id,name&order=name"),
+    get(`duties?select=duty_date,student_id,status&duty_date=gte.${START}&duty_date=lte.${END}&order=id`)
+  ]);
+}
+const nameOf = id => (students.find(s => s.id === id) || {name:"?"}).name;
+const forDate = d => duties.filter(x => x.duty_date === d);
+const badge = s => `<span class="badge ${s}">${LABEL[s]}</span>`;
+
+function render(){ admin ? renderAdmin() : renderPublic(); }
+
+function renderPublic(){
+  const inRange = todayIso >= START && todayIso <= END;
+  const t = forDate(todayIso);
+  const todayHtml = !inRange ? `<p class="mute">Jadwal piket berlaku 5–31 Oktober 2026.</p>`
+    : t.length ? t.map((x,i) => `<div class="row" style="margin-top:14px"><span>${i+1}. ${esc(nameOf(x.student_id))}</span>${badge(x.status)}</div>`).join("")
+    : `<p class="mute">Belum ada jadwal piket hari ini.</p>`;
+
+  const days = [];
+  for (let i = 0; i < 6; i++){
+    const d = addDays(weekStart, i);
+    if (d < START || d > END) continue;
+    if (i === 5 && !forDate(d).length) continue;
+    days.push(d);
+  }
+  const week = days.map(d => {
+    const l = forDate(d);
+    const who = l.length ? l.map(x => `<div class="person">${esc(nameOf(x.student_id))} ${badge(x.status)}</div>`).join("") : "–";
+    return `<div class="day row"><div><b>${DAYS[parse(d).getDay()]}</b><span class="d">${fmt(d)}</span></div><div class="names">${who}</div></div>`;
+  }).join("");
+  const wEnd = addDays(weekStart, 6);
+
+  $("#app").innerHTML = `
+  <section class="card"><div class="row"><h2>Piket hari ini</h2><button id="goAdmin">Admin</button></div>${todayHtml}</section>
+  <section class="card"><div class="row"><h2>Jadwal Oktober</h2>
+    <div class="nav"><button id="prev" aria-label="Minggu sebelumnya" ${weekStart <= mondayOf(START) ? "disabled" : ""}>‹</button><button id="next" aria-label="Minggu berikutnya" ${wEnd > END ? "disabled" : ""}>›</button></div></div>
+    <p class="mute" style="margin:4px 0 0">Minggu ${parse(weekStart).getDate()}–${parse(addDays(weekStart,4)).getDate()} Oktober</p>${week}</section>`;
+  $("#goAdmin").onclick = () => { $("#pw").value = ""; $("#loginErr").textContent = ""; $("#login").showModal(); $("#pw").focus(); };
+  $("#prev").onclick = () => { weekStart = addDays(weekStart,-7); renderPublic(); };
+  $("#next").onclick = () => { weekStart = addDays(weekStart,7); renderPublic(); };
+}
+
+function loadItems(){ items = forDate(editDate).map(x => ({student_id:x.student_id, status:x.status})); }
+
+function renderAdmin(){
+  const opts = sel => `<option value="">-- pilih siswa --</option>` + students.map(s => `<option value="${s.id}" ${s.id === sel ? "selected" : ""}>${esc(s.name)}</option>`).join("");
+  const rows = items.map((it,i) => `<div class="edit" style="margin-top:10px">
+    <select data-i="${i}" data-f="student_id" aria-label="Siswa">${opts(it.student_id)}</select>
+    <select data-i="${i}" data-f="status" aria-label="Status">${Object.keys(LABEL).map(k => `<option value="${k}" ${it.status===k?"selected":""}>${LABEL[k]}</option>`).join("")}</select>
+    <button class="danger" data-del="${i}" aria-label="Hapus baris">✕</button></div>`).join("");
+  $("#app").innerHTML = `
+  <section class="card"><div class="row"><h2>Panel admin</h2><button id="view">Lihat sebagai siswa</button></div>
+    <p class="mute">Pilih tanggal, lalu atur nama dan status. Tanggal bisa diganti setiap hari.</p>
+    <label class="mute" for="date">Tanggal piket</label>
+    <input id="date" type="date" min="${START}" max="${END}" value="${editDate}">
+    <div class="actions"><button class="dark" id="todayBtn" style="width:100%">Hari ini</button></div></section>
+  <section class="card"><h2>Piket ${fmt(editDate)}</h2>${rows || `<p class="mute">Belum ada siswa di tanggal ini.</p>`}
+    <div class="actions"><button class="dark" id="addRow">+ Tambah siswa</button><button class="dark" id="save">Simpan</button><button class="danger" id="delDate">Hapus tanggal</button></div></section>
+  <section class="card"><h2>Daftar siswa</h2>
+    <input id="newName" placeholder="Contoh: Helmi" maxlength="60" aria-label="Nama siswa baru">
+    <div class="actions"><button class="dark" id="addStu">Tambah ke daftar</button></div>
+    <ul class="stu">${students.map(s => `<li>${esc(s.name)}<button class="danger" data-stu="${s.id}">Hapus</button></li>`).join("")}</ul></section>`;
+
+  $("#view").onclick = () => { admin = false; render(); };
+  $("#date").onchange = e => { if (e.target.value) { editDate = clamp(e.target.value); loadItems(); renderAdmin(); } };
+  $("#todayBtn").onclick = () => { editDate = clamp(todayIso); loadItems(); renderAdmin(); };
+  $("#addRow").onclick = () => { items.push({student_id:null, status:"piket"}); renderAdmin(); };
+  document.querySelectorAll("[data-f]").forEach(el => el.onchange = () => {
+    items[+el.dataset.i][el.dataset.f] = el.dataset.f === "student_id" ? (el.value ? +el.value : null) : el.value;
+  });
+  document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { items.splice(+b.dataset.del,1); renderAdmin(); });
+  $("#save").onclick = () => act(async () => {
+    const ok = items.filter(i => i.student_id);
+    if (new Set(ok.map(i => i.student_id)).size !== ok.length) throw new Error("Ada siswa yang dobel");
+    await rpc("admin_save_date", {p_password:pw, p_date:editDate, p_items:ok});
+    toast("Tersimpan");
+  });
+  $("#delDate").onclick = () => { if (confirm("Hapus semua piket di " + fmt(editDate) + "?")) act(async () => { await rpc("admin_delete_date", {p_password:pw, p_date:editDate}); toast("Tanggal dihapus"); }); };
+  $("#addStu").onclick = () => act(async () => {
+    const n = $("#newName").value.trim(); if (!n) throw new Error("Nama kosong");
+    await rpc("admin_add_student", {p_password:pw, p_name:n}); toast("Siswa ditambahkan");
+  });
+  document.querySelectorAll("[data-stu]").forEach(b => b.onclick = () => {
+    if (confirm("Hapus siswa ini beserta jadwalnya?")) act(async () => { await rpc("admin_delete_student", {p_password:pw, p_id:+b.dataset.stu}); toast("Siswa dihapus"); });
+  });
+}
+
+async function act(fn){
+  try { await fn(); await load(); loadItems(); renderAdmin(); }
+  catch(e){ toast(e.message); }
+}
+
+$("#loginCancel").onclick = () => $("#login").close();
+$("#loginForm").onsubmit = async e => {
+  e.preventDefault();
+  try {
+    const ok = await rpc("admin_check", {p_password: $("#pw").value});
+    if (!ok) { $("#loginErr").textContent = "Password salah."; return; }
+    pw = $("#pw").value; admin = true; $("#login").close();
+    editDate = clamp(todayIso); loadItems(); render();
+  } catch(err){ $("#loginErr").textContent = err.message; }
+};
+
+(async () => {
+  if (!SUPABASE_URL || !SUPABASE_KEY){
+    $("#app").innerHTML = `<section class="card"><h2>Belum disambungkan</h2><p class="mute">Isi SUPABASE_URL dan SUPABASE_KEY di index.html. Lihat README.</p></section>`;
+    return;
+  }
+  try { await load(); render(); }
+  catch(e){ $("#app").innerHTML = `<section class="card"><h2>Data gagal dimuat</h2><p class="mute">Periksa koneksi, lalu muat ulang halaman.</p></section>`; }
+})();
+</script>
+</body>
+</html>
