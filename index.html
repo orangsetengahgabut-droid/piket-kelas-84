@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Piket Kelas</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f5f7fb}
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb}.wrap{max-width:760px;margin:auto;padding:20px}
+header{background:#172033;color:white;border-radius:20px;padding:22px;margin-bottom:16px}
+h1{margin:0 0 6px;font-size:28px}.muted{opacity:.72;font-size:14px}
+.card{background:white;border:1px solid #e3e7ef;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 4px 18px #17203310}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #edf0f5}.row:last-child{border-bottom:0}
+.badge{padding:5px 9px;border-radius:999px;font-size:12px;background:#e9eef7}.done{background:#dff7e7;color:#176b35}
+button,input,select{font:inherit}button{border:0;border-radius:11px;padding:10px 13px;cursor:pointer;background:#172033;color:white}
+button.secondary{background:#edf1f7;color:#172033}.danger{background:#c93535}
+input,select{width:100%;padding:10px;border:1px solid #d9deea;border-radius:10px;background:white}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.hidden{display:none}.adminbar{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.notice{padding:11px 13px;border-radius:12px;background:#fff7db;color:#6c5200;font-size:13px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.wrap{padding:12px}header{border-radius:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="muted">WEBSITE KELAS</div>
+  <h1>Piket Kelas</h1>
+  <div id="today" class="muted"></div>
+</header>
+
+<section id="viewer">
+  <div class="card">
+    <div class="adminbar"><strong>Piket hari ini</strong><button class="secondary" onclick="showAdmin()">Admin</button></div>
+    <div id="todayList"></div>
+  </div>
+  <div class="card">
+    <strong>Jadwal minggu ini</strong>
+    <div id="weekList"></div>
+  </div>
+</section>
+
+<section id="admin" class="hidden">
+  <div class="card">
+    <div class="adminbar"><strong>Panel Admin</strong><button class="secondary" onclick="showViewer()">Lihat sebagai siswa</button></div>
+    <p class="muted">Di versi online, perubahan di sini nantinya disimpan ke database dan terlihat di semua HP.</p>
+    <div id="adminList"></div>
+    <div class="actions">
+      <button onclick="addMember()">+ Tambah siswa</button>
+      <button onclick="saveLocal()">Simpan</button>
+      <button class="danger" onclick="resetDemo()">Reset demo</button>
+    </div>
+  </div>
+  <div class="notice">Status saat ini: DEMO DATABASE. File ini belum terhubung ke server online.</div>
+</section>
+</div>
+
+<script>
+const KEY="piket_kelas_demo_v1";
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{
+  members:["Andi","Budi","Citra","Dimas","Eka"],
+  days:{
+    "Senin":["Andi","Citra"],
+    "Selasa":["Budi","Dimas"],
+    "Rabu":["Eka","Andi"],
+    "Kamis":["Citra","Dimas"],
+    "Jumat":["Budi","Eka"]
+  }
+};
+const days=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const todayName=days[new Date().getDay()];
+document.getElementById("today").textContent=`Hari ini: ${todayName}, ${new Date().toLocaleDateString("id-ID")}`;
+
+function saveLocal(){localStorage.setItem(KEY,JSON.stringify(data));render();alert("Tersimpan di perangkat ini.");}
+function showAdmin(){
+  const p=prompt("Password admin demo:");
+  if(p!=="piket123") return alert("Password salah.");
+  document.getElementById("viewer").classList.add("hidden");
+  document.getElementById("admin").classList.remove("hidden");
+  renderAdmin();
+}
+function showViewer(){document.getElementById("admin").classList.add("hidden");document.getElementById("viewer").classList.remove("hidden");render();}
+function render(){
+  const arr=data.days[todayName]||[];
+  document.getElementById("todayList").innerHTML=arr.length?arr.map((n,i)=>`<div class="row"><span>${i+1}. ${esc(n)}</span><span class="badge">Piket</span></div>`).join(""):"<p class='muted'>Tidak ada jadwal.</p>";
+  document.getElementById("weekList").innerHTML=days.slice(1,6).map(d=>`<div class="row"><span><strong>${d}</strong></span><span>${(data.days[d]||[]).map(esc).join(", ")||"-"}</span></div>`).join("");
+}
+function renderAdmin(){
+  document.getElementById("adminList").innerHTML=days.slice(1,6).map(d=>`
+    <div class="card">
+      <strong>${d}</strong>
+      <div class="grid" style="margin-top:10px">
+        <input value="${escAttr((data.days[d]||[])[0]||"")}" onchange="setDay('${d}',0,this.value)" placeholder="Siswa 1">
+        <input value="${escAttr((data.days[d]||[])[1]||"")}" onchange="setDay('${d}',1,this.value)" placeholder="Siswa 2">
+      </div>
+    </div>`).join("");
+}
+function setDay(day,i,value){data.days[day]=data.days[day]||[];data.days[day][i]=value.trim();data.days[day]=data.days[day].filter(Boolean);}
+function addMember(){const n=prompt("Nama siswa:");if(n){data.members.push(n.trim());alert("Nama ditambahkan. Jadwal bisa diisi pada hari yang diinginkan.");}}
+function resetDemo(){if(confirm("Reset data demo?")){localStorage.removeItem(KEY);location.reload();}}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function escAttr(s){return esc(s);}
+render();
+</script>
+</body>
+</html>
