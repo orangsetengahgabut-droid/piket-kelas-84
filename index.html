@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jadwal Piket Kelas</title>
+  <!-- Google Fonts & html2canvas untuk Fitur Kirim ke Grup -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 16px;
+      
+      --ok-bg: #dcfce7;
+      --ok-text: #15803d;
+      --absent-bg: #fef9c3;
+      --absent-text: #a16207;
+      --run-bg: #ffe4e6;
+      --run-text: #be123c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 16px 8px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      color: white;
+      padding: 24px 20px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header .badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    header h1 { font-size: 24px; font-weight: 800; }
+    header p { font-size: 13px; opacity: 0.9; margin-top: 2px; }
+
+    /* Card Box */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Month Navigation */
+    .monthbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .monthbar h2 { font-size: 18px; font-weight: 700; }
+    .btn-icon {
+      background: #f1f5f9;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: #e2e8f0; }
+
+    /* Calendar Grid */
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .dow {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding-bottom: 8px;
+    }
+    .day {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      min-height: 90px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: border 0.2s;
+    }
+    .day.today {
+      border: 2px solid var(--primary);
+      background: #ffffff;
+    }
+    .day.empty { background: transparent; border-color: transparent; }
+    .day-num {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-muted);
+    }
+    .day.today .day-num { color: var(--primary); }
+
+    /* Entry Card inside Calendar */
+    .entry {
+      border-radius: 8px;
+      padding: 5px;
+      font-size: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .entry .name { font-weight: 700; font-size: 11px; word-break: break-word; }
+    .entry .status { font-size: 9px; opacity: 0.9; }
+
+    .status-ok { background: var(--ok-bg); color: var(--ok-text); }
+    .status-absent { background: var(--absent-bg); color: var(--absent-text); }
+    .status-run { background: var(--run-bg); color: var(--run-text); }
+
+    /* Action Bar / Legend */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .legend {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .btn {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #f1f5f9; color: var(--text); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #ef4444; color: white; }
+
+    /* Admin Panel */
+    .hidden { display: none !important; }
+    .admin-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: var(--primary); }
+
+    @media (max-width: 600px) {
+      body { padding: 8px 4px; }
+      .calendar { gap: 3px; }
+      .day { min-height: 75px; padding: 4px; }
+      .entry { padding: 3px; }
+      .entry .name { font-size: 9.5px; }
+      .entry .status { font-size: 8px; }
+      .admin-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div>
+        <span class="badge">Jadwal Kelas</span>
+        <h1>Piket Harian</h1>
+        <p id="todayText">Memuat tanggal...</p>
+      </div>
+      <button class="btn btn-secondary" onclick="shareToGroup()">📸 Bagikan Gambar</button>
+    </header>
+
+    <!-- Main Viewer Card -->
+    <section id="viewer">
+      <div class="card" id="exportArea">
+        <div class="monthbar">
+          <button class="btn-icon" onclick="changeMonth(-1)">‹</button>
+          <h2 id="monthTitle">Oktober 2026</h2>
+          <button class="btn-icon" onclick="changeMonth(1)">›</button>
+        </div>
+        
+        <div class="calendar" id="calendar"></div>
+      </div>
+
+      <div class="card toolbar" style="margin-top: 12px;">
+        <div class="legend">
+          <span>🟢 Piket</span>
+          <span>🟡 Tidak Piket</span>
+          <span>🔴 Kabur</span>
+        </div>
+        <button class="btn btn-secondary" onclick="showAdmin()">⚙️ Panel Admin</button>
+      </div>
+    </section>
+
+    <!-- Admin Panel -->
+    <section id="admin" class="card hidden">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>⚙️ Pengaturan Piket</h3>
+        <button class="btn btn-secondary" onclick="showViewer()">Kembali</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 4px;">PILIH TANGGAL</label>
+        <input id="editDate" type="date" onchange="loadEditor()">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <h4 id="editorTitle" style="font-size: 14px; margin-bottom: 8px;">Daftar Piket:</h4>
+        <div id="adminList"></div>
+        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="addRow()">+ Tambah Siswa</button>
+          <button class="btn btn-primary" onclick="save()">Simpan Data</button>
+          <button class="btn btn-danger" onclick="deleteDate()">Hapus Tanggal Ini</button>
+        </div>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
+
+      <div>
+        <h4 style="font-size: 14px; margin-bottom: 8px;">Tambah Siswa Baru ke Master Data</h4>
+        <div style="display: flex; gap: 8px;">
+          <input id="newMember" placeholder="Contoh: Budi">
+          <button class="btn btn-primary" onclick="addMember()">Tambah</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const KEY = "piket-kelas-v3";
+    const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    const days = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+
+    let view = new Date();
+    view.setDate(1);
+
+    // Initial Data
+    let data = JSON.parse(localStorage.getItem(KEY) || "null") || {
+      members: ["Andi", "Budi", "Citra", "Dimas", "Eka", "Helmi"],
+      dates: {
+        "2026-10-05": [
+          { name: "Helmi", status: "tidak" }
+        ]
+      }
+    };
+
+    function iso(d) {
+      let x = new Date(d);
+      x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+      return x.toISOString().slice(0, 10);
+    }
+
+    function today() { return iso(new Date()); }
+
+    function fmt(s) {
+      return new Date(s + "T00:00:00").toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    }
+
+    function ensure(s) {
+      if (!data.dates[s]) data.dates[s] = [];
+      return data.dates[s];
+    }
+
+    function getStatusClass(s) {
+      return s === "kabur" ? "status-run" : s === "tidak" ? "status-absent" : "status-ok";
+    }
+
+    function getStatusBadge(s) {
+      if (s === "kabur") return "🔴 Kabur";
+      if (s === "tidak") return "🟡 Tidak piket";
+      return "🟢 Piket";
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    }
+
+    function render() {
+      let t = today();
+      document.getElementById("todayText").textContent = fmt(t);
+      document.getElementById("monthTitle").textContent = months[view.getMonth()] + " " + view.getFullYear();
+
+      let h = days.map(x => `<div class="dow">${x}</div>`).join("");
+      let first = new Date(view.getFullYear(), view.getMonth(), 1).getDay();
+      let count = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+
+      for (let i = 0; i < first; i++) h += '<div class="day empty"></div>';
+
+      for (let n = 1; n <= count; n++) {
+        let s = iso(new Date(view.getFullYear(), view.getMonth(), n));
+        let a = (data.dates[s] || []).filter(x => x.name && x.name.trim() !== "");
+        
+        let entries = a.length 
+          ? a.map(x => `
+              <div class="entry ${getStatusClass(x.status)}">
+                <span class="name">${esc(x.name)}</span>
+                <span class="status">${getStatusBadge(x.status)}</span>
+              </div>
+            `).join("")
+          : '<span style="font-size:10px; color:var(--text-muted); opacity:0.5;">-</span>';
+
+        h += `
+          <div class="day ${s === t ? "today" : ""}">
+            <span class="day-num">${n}</span>
+            ${entries}
+          </div>
+        `;
+      }
+      document.getElementById("calendar").innerHTML = h;
+    }
+
+    function changeMonth(n) {
+      view.setMonth(view.getMonth() + n);
+      render();
+    }
+
+    function showAdmin() {
+      if (prompt("Password admin:") !== "piket123") return alert("Password salah.");
+      document.getElementById("viewer").classList.add("hidden");
+      document.getElementById("admin").classList.remove("hidden");
+      document.getElementById("editDate").value = today();
+      loadEditor();
+    }
+
+    function showViewer() {
+      document.getElementById("admin").classList.add("hidden");
+      document.getElementById("viewer").classList.remove("hidden");
+      render();
+    }
+
+    function loadEditor() {
+      let s = document.getElementById("editDate").value || today();
+      let a = ensure(s);
+      document.getElementById("editorTitle").textContent = "Setting Piket: " + fmt(s);
+      let rows = a.length ? a : [{ name: "", status: "piket" }];
+      
+      document.getElementById("adminList").innerHTML = rows.map((x, i) => `
+        <div class="admin-row">
+          <select onchange="nameChange(${i}, this.value)">
+            <option value="">-- pilih siswa --</option>
+            ${data.members.map(n => `<option value="${esc(n)}" ${n === x.name ? "selected" : ""}>${esc(n)}</option>`).join("")}
+          </select>
+          <select onchange="statusChange(${i}, this.value)">
+            <option value="piket" ${x.status === "piket" ? "selected" : ""}>🟢 Piket</option>
+            <option value="tidak" ${x.status === "tidak" ? "selected" : ""}>🟡 Tidak piket</option>
+            <option value="kabur" ${x.status === "kabur" ? "selected" : ""}>🔴 Kabur</option>
+          </select>
+          <button class="btn btn-danger" onclick="removeRow(${i})">✕</button>
+        </div>
+      `).join("");
+    }
+
+    function nameChange(i, v) {
+      let a = ensure(document.getElementById("editDate").value);
+      if (a[i]) a[i].name = v;
+    }
+
+    function statusChange(i, v) {
+      let a = ensure(document.getElementById("editDate").value);
+      if (a[i]) a[i].status = v;
+    }
+
+    function addRow() {
+      ensure(document.getElementById("editDate").value || today()).push({ name: "", status: "piket" });
+      loadEditor();
+    }
+
+    function removeRow(i) {
+      ensure(document.getElementById("editDate").value).splice(i, 1);
+      loadEditor();
+    }
+
+    function addMember() {
+      let e = document.getElementById("newMember");
+      let n = e.value.trim();
+      if (n && !data.members.includes(n)) data.members.push(n);
+      e.value = "";
+      save();
+    }
+
+    function save() {
+      for (let d in data.dates) {
+        data.dates[d] = data.dates[d].filter(x => x.name && x.name.trim() !== "");
+      }
+      localStorage.setItem(KEY, JSON.stringify(data));
+      render();
+      loadEditor();
+      alert("Data berhasil disimpan.");
+    }
+
+    function deleteDate() {
+      let s = document.getElementById("editDate").value;
+      if (confirm("Hapus data tanggal " + fmt(s) + "?")) {
+        delete data.dates[s];
+        save();
+      }
+    }
+
+    // Fitur Download Gambar untuk dikirim ke Grup WhatsApp
+    function shareToGroup() {
+      const area = document.getElementById("exportArea");
+      html2canvas(area, { scale: 2 }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `Jadwal-Piket-${months[view.getMonth()]}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
